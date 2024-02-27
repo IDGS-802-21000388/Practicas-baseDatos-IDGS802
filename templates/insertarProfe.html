@@ -1,0 +1,34 @@
+{% extends "layout2.html" %}
+    {% from "_macros.html" import render_field %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <form name="registro" action="/insertarProfe" id="registro" method="post" novalidate>
+                <div class="row control-group">
+                    <div class="form_group col-xs-12 float-label-form-grup controls">
+                        {{render_field(form.nombre, class="form-control")}}
+                    </div>
+                </div>
+                <div class="row control-group">
+                    <div class="form_group col-xs-12 float-label-form-grup controls">
+                        {{render_field(form.apaterno, class="form-control")}}
+                    </div>
+                </div>
+                <div class="row control-group">
+                    <div class="form_group col-xs-12 float-label-form-grup controls">
+                        {{render_field(form.materia, class="form-control")}}
+                    </div>
+                </div>
+                <div class="row control-group">
+                    <div class="form_group col-xs-12 float-label-form-grup controls">
+                        {{render_field(form.edad, class="form-control")}}
+                    </div>
+                </div>
+                </div>
+                <input type="hidden" name="csrf_token" value="{{csrf_token()}}"/>
+                <input type="submit" id="registrar" name="registrar" value="Registrar" />
+            </form>
+        </div>
+    </div>
+           
+{% endblock %}
