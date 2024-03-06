@@ -1,0 +1,137 @@
+{% extends "layout2.html" %}
+    {% from "_macros.html" import render_field %}
+{% block content %}
+    <div class="container">
+        <form name="registro" action="/pizzeria" id="registro" method="post" novalidate>
+            <div class="row align-items-start">    
+                <div class="col-4">
+                    <div class="row control-group">
+                        <div class="form_group col-xs-12 float-label-form-grup controls">
+                            {{render_field(form.nombre, class="form-control")}}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="row control-group">
+                        <div class="form_group col-xs-12 float-label-form-grup controls">
+                            {{render_field(form.direccion, class="form-control")}}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="row control-group">
+                        <div class="form_group col-xs-12 float-label-form-grup controls">
+                            {{render_field(form.telefono, class="form-control")}}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="row control-group">
+                        <div class="form_group col-xs-12 float-label-form-grup controls">
+                            {{render_field(pizza_form.tamañoPizza, class="form-control")}}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="row control-group">
+                        <div class="form_group col-xs-12 float-label-form-grup controls">
+                            <input type="checkbox" value="Jamon" name="Jamon" id="Jamon">
+                            <label for="Jamon">Jamon</label>
+                        </div>
+                        <div class="form_group col-xs-12 float-label-form-grup controls">
+                            <input type="checkbox" value="Piña" name="Piña" id="Piña">
+                            <label for="Piña">Piña</label>
+                        </div>
+                        <div class="form_group col-xs-12 float-label-form-grup controls">
+                            <input type="checkbox" value="Champiñones" name="Champiñones" id="Champiñones">
+                            <label for="Champiñones">Champiñones</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="row control-group">
+                        <div class="form_group col-xs-12 float-label-form-grup controls">
+                            {{render_field(pizza_form.numPizzas, class="form-control")}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+                <input type="hidden" name="csrf_token" value="{{csrf_token()}}"/>
+                <input type="submit" class="btn btn-success" id="agregar" name="agregar" value="Agregar" />
+            </form>
+
+            <!-- TABLE -->
+            <div class="row align-items-start">    
+                <div class="col-6">
+                    <table class="mt-5 table table-striped table-bordered">
+                        <thead>
+                        <tr>
+                            <th>Tamaño</th>
+                            <th>Ingredientes</th>
+                            <th>Num. Piezas</th>
+                            <th>SubTotal</th>
+                        </tr>
+                        </thead>
+                        <tbody id="pizzasIngresadas">
+                            {% for pizza in pizzas %}
+                                <tr>
+                                    <td>{{ pizza['tamañoPizza'] }}</td>
+                                    <td>
+                                        {% if pizza['jamon'] %}
+                                            Jamon
+                                        {% endif %}
+                                        {% if pizza['pina'] %}
+                                            Piña
+                                        {% endif %}
+                                        {% if pizza['champiñones'] %}
+                                            Champiñones
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ pizza['numPizzas'] }}</td>
+                                    <td>SubTotal</td>
+                                    <td>
+                                        <form action="/quitar_pizza" method="post">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="pizza_index" value="{{ loop.index0 }}">
+                                            <button type="submit" class="btn btn-danger">Quitar</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                                                            
+                    </table>
+                    <form action="/confirmar_pedido" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="submit" class="btn btn-success" id="terminar" name="terminar" value="Terminar" />
+                    </form>
+                </div>
+
+                <div class="col-6">
+                    <div class="sales-data mt-5">
+                        <form action="{{ url_for('pizzeria') }}" method="GET">
+                            <div class="sales-item">
+                                <input type="text" id="dia" name="dia" placeholder="Día">
+                                <input type="text" id="mes" name="mes" placeholder="Mes">
+                                <button type="submit">Buscar</button>
+                            </div>
+                            <input type="hidden" name="buscar_ventas" value="true">
+                        </form>
+                        {% if ventas_acumuladas %}
+                            <h3>Ventas acumuladas por cliente:</h3>
+                            <ul>
+                                {% for venta in ventas_acumuladas %}
+                                    <li>{{ venta[0] }}: ${{ venta[1] }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {% if suma_total %}
+                            <p>Ventas totales: ${{ suma_total }}</p>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+    </div>
+           
+{% endblock %}

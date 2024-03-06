@@ -1,0 +1,7 @@
+<h2>Confirmar Pedido</h2>
+<p>El costo total del pedido es: ${{ costo_total }}</p>
+<form action="{{ url_for('confirmar_pedido') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="submit" name="accion" value="confirmar" class="btn btn-success">
+    <input type="submit" name="accion" value="editar" class="btn btn-primary">
+</form>
