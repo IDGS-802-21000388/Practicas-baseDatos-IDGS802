@@ -4,6 +4,7 @@ from config import DevelopmentConfig
 import forms
 from models import db, Alumnos, Profesores, Pizzas, DetallePedido, Pedido, Clientes
 from sqlalchemy import func
+from datetime import datetime
 
 app = Flask(__name__)
 app.config.from_object(DevelopmentConfig)
@@ -31,6 +32,15 @@ PIZZAS = []
 def pizzeria():
     cliente_form = forms.ClienteForm(request.form)
     pizza_form = forms.PizzaForm(request.form)
+    dias_dict = {
+        "lunes": 1,
+        "martes": 2,
+        "miércoles": 3,
+        "jueves": 4,
+        "viernes": 5,
+        "sábado": 6,
+        "domingo": 7
+    }
     
     if request.method == "POST" and cliente_form.validate():
         nombre = cliente_form.nombre.data
@@ -41,6 +51,7 @@ def pizzeria():
         pina = request.form.get('Piña')        
         champiñones = request.form.get('Champiñones')
         numPizzas = pizza_form.numPizzas.data
+        fecha = request.form.get('fecha')
 
         if 'agregar' in request.form and cliente_form.validate():
             pizza_data = {
@@ -51,33 +62,88 @@ def pizzeria():
                 'jamon': jamon,
                 'pina': pina,
                 'champiñones': champiñones,
-                'numPizzas': numPizzas
+                'numPizzas': numPizzas,
+                'fecha': fecha,
+                'subtotal': calcular_costo_total_individual({
+                    'tamañoPizza': tamañoPizza,
+                    'jamon': jamon,
+                    'pina': pina,
+                    'champiñones': champiñones,
+                    'numPizzas': numPizzas
+                })
             }
             PIZZAS.append(pizza_data)
             print(PIZZAS)
-            flash("La pizza ya se encuentra agregado")
+            flash("La pizza se agrego")
         elif 'terminar' in request.form:
             return redirect(url_for('confirmar_pedido'))
         print(PIZZAS)
         
     if request.method == "GET" and 'buscar_ventas' in request.args:
-        dia = request.args.get('dia')
-        mes = request.args.get('mes')
+        dia_input = request.args.get('dia')
+        mes_input = request.args.get('mes')
 
-        query = db.session.query(Clientes.nombre, func.sum(DetallePedido.subtotal)).join(Pedido, Pedido.cliente_id == Clientes.id).join(DetallePedido, DetallePedido.pedido_id == Pedido.id).group_by(Clientes.nombre)
+        dia = str(dia_input).lstrip("0")
+        mes = str(mes_input).lstrip("0")
 
-        if dia:
-            query = query.filter(func.extract('day', Pedido.fecha) == dia)
-        if mes:
-            query = query.filter(func.extract('month', Pedido.fecha) == mes)
+        dias_semana = {
+            '1': 'Lunes',
+            '2': 'Martes',
+            '3': 'Miércoles',
+            '4': 'Jueves',
+            '5': 'Viernes',
+            '6': 'Sábado',
+            '7': 'Domingo'
+        }
         
+        meses_dict = {
+            '1': 'Enero',
+            '2': 'Febrero',
+            '3': 'Marzo',
+            '4': 'Abril',
+            '5': 'Mayo',
+            '6': 'Junio',
+            '7': 'Julio',
+            '8': 'Agosto',
+            '9': 'Septiembre',
+            '10': 'Octubre',
+            '11': 'Noviembre',
+            '12': 'Diciembre'
+        }
+        
+        dia = dias_semana.get(dia)
+        mes = meses_dict.get(mes)
+
+        query = db.session.query(Clientes.nombre, func.sum(DetallePedido.subtotal)) \
+            .join(Pedido, Pedido.cliente_id == Clientes.id) \
+            .join(DetallePedido, DetallePedido.pedido_id == Pedido.id) \
+            .group_by(Clientes.nombre)
+
+        if dia_input:
+            if dia is not None:
+                query = query.filter(Pedido.dia_semana.ilike(f'%{dia}%'))
+            else:
+                query = query.filter(Pedido.dia_semana.ilike(f'%{dia_input}%'))
+
+        if mes_input:
+            if mes is not None:
+                query = query.filter(Pedido.mes.ilike(f'%{mes}%'))
+            else:
+                query = query.filter(Pedido.mes.ilike(f'%{mes_input}%'))
+
         ventas_acumuladas = query.all()
-        suma_total = sum(venta[1] for venta in ventas_acumuladas)
-        print(suma_total)
+        print(ventas_acumuladas)
 
-        return render_template('pizzeria.html', form=cliente_form, pizza_form=pizza_form, ventas_acumuladas=ventas_acumuladas, suma_total=suma_total)
+        suma_total_ventas = sum(venta[1] for venta in ventas_acumuladas)
+
+        return render_template('pizzeria.html', form=cliente_form, pizza_form=pizza_form, ventas_acumuladas=ventas_acumuladas, suma_total=suma_total_ventas)
 
 
+    if len(PIZZAS) > 0:
+        cliente_form.nombre.data = PIZZAS[0]['nombre']
+        cliente_form.direccion.data = PIZZAS[0]['direccion']
+        cliente_form.telefono.data = PIZZAS[0]['telefono']
+        
     return render_template('pizzeria.html', form=cliente_form, pizza_form = pizza_form, pizzas=PIZZAS)
 
 @app.route('/quitar_pizza', methods=["POST"])
@@ -90,6 +156,31 @@ def quitar_pizza():
 @app.route('/confirmar_pedido', methods=["GET", "POST"])
 def confirmar_pedido():
     costo_total = calcular_costo_total(PIZZAS)
+    dias_semana_espanol = {
+        "Monday": "Lunes",
+        "Tuesday": "Martes",
+        "Wednesday": "Miércoles",
+        "Thursday": "Jueves",
+        "Friday": "Viernes",
+        "Saturday": "Sábado",
+        "Sunday": "Domingo"
+    }
+
+    meses_espanol = {
+        "January": "Enero",
+        "February": "Febrero",
+        "March": "Marzo",
+        "April": "Abril",
+        "May": "Mayo",
+        "June": "Junio",
+        "July": "Julio",
+        "August": "Agosto",
+        "September": "Septiembre",
+        "October": "Octubre",
+        "November": "Noviembre",
+        "December": "Diciembre"
+    }
+
     if request.method == "POST":
         accion = request.form.get('accion')
         if 'confirmar' == accion:
@@ -102,7 +193,14 @@ def confirmar_pedido():
             db.session.add(cliente)
             db.session.commit()
 
-            pedido = Pedido(cliente_id=cliente.id)
+            fecha_str = PIZZAS[0]['fecha']
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            dia_semana = dias_semana_espanol[fecha.strftime("%A")]
+            mes = meses_espanol[fecha.strftime("%B")]
+            print(dia_semana)
+            print(mes)
+
+            pedido = Pedido(cliente_id=cliente.id, fecha=fecha, dia_semana=dia_semana, mes=mes)
             db.session.add(pedido)
             db.session.commit() 
             
@@ -165,6 +263,27 @@ def calcular_costo_total(pizzas):
         costo_total += costo_pizza * pizza['numPizzas']
     
     return costo_total
+
+def calcular_costo_total_individual(pizza):
+    costo_pizza = 0
+    
+    if pizza['tamañoPizza'] == 'Chica':
+        costo_pizza += 40
+    elif pizza['tamañoPizza'] == 'Mediana':
+        costo_pizza += 80
+    elif pizza['tamañoPizza'] == 'Grande':
+        costo_pizza += 120
+    
+    if pizza['jamon'] == 'Jamon':
+        costo_pizza += 10
+    if pizza['pina'] == 'Piña':
+        costo_pizza += 10
+    if pizza['champiñones'] == 'Champiñones':
+        costo_pizza += 10
+    
+    subtotal = costo_pizza * pizza['numPizzas']
+    
+    return subtotal
 
 @app.route('/ABC_Completo', methods=["GET","POST"])
 def ABCompleto():

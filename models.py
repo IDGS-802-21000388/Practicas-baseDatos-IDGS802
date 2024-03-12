@@ -32,11 +32,13 @@ class Pizzas(db.Model):
     tamanio = db.Column(db.String(100))
     ingredientes = db.Column(db.String(100))
     numPizzas = db.Column(db.Integer)
-
+ 
 class Pedido(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('clientes.id'))
-    fecha = db.Column(db.DateTime, default=datetime.datetime.now)
+    fecha = db.Column(db.Date)
+    dia_semana = db.Column(db.String(20))
+    mes = db.Column(db.String(20))
     detalles = db.relationship('DetallePedido', backref='pedido', lazy=True)
 
 class DetallePedido(db.Model):
